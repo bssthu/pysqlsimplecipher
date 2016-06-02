@@ -60,3 +60,18 @@ target/
 
 #Ipython Notebook
 .ipynb_checkpoints
+
+# Windows thumbnail db
+Thumbs.db
+
+# OSX files
+.DS_Store
+
+*~
+.*.swp
+
+.idea/
+/temp/
+
+*.db
+*.sqlite
