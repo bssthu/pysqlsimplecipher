@@ -10,5 +10,11 @@ without install sqlcipher.
 python decrypt.py encrypted.db password output.db
 ```
 
+## Encrypt
+```bash
+python encrypt.py plain.db password output.db
+```
+Needs reserved space at the end of each page of the database file.
+
 ## License
 GNU Lesser General Public License Version 3

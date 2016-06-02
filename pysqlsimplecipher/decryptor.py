@@ -8,8 +8,6 @@
 #
 
 
-import hashlib
-import hmac
 from pysqlsimplecipher import config
 from pysqlsimplecipher import util
 
@@ -53,11 +51,11 @@ def decrypt(raw, password, salt_mask, key_sz, hmac_key_sz, page_sz, iv_sz, reser
     # derive key
     salt_sz = 16
     salt = raw[:salt_sz]
-    key, hmac_key = key_derive(salt, password, salt_mask, key_sz, hmac_key_sz)
+    key, hmac_key = util.key_derive(salt, password, salt_mask, key_sz, hmac_key_sz)
 
     # decrypt pages
-    for i in range(0, (int)(len(raw) / 1024)):
-        page = raw[page_sz*i:page_sz*(i+1)]
+    for i in range(0, int(len(raw) / 1024)):
+        page = util.get_page(raw, page_sz, i + 1)
         if i == 0:
             # skip salt
             page = page[salt_sz:]
@@ -66,25 +64,11 @@ def decrypt(raw, password, salt_mask, key_sz, hmac_key_sz, page_sz, iv_sz, reser
         iv = reserve[:iv_sz]
         # check hmac
         hmac_old = reserve[iv_sz:iv_sz+hmac_sz]
-        hmac_obj = hmac.new(hmac_key, page_content + iv, hashlib.sha1)
-        hmac_obj.update((i+1).to_bytes(4, 'little'))
-        hmac_new = hmac_obj.digest()
+        hmac_new = util.generate_hmac(hmac_key, page_content + iv, i + 1)
         if not hmac_old == hmac_new:
             raise RuntimeError('hmac check failed in page %d.' % (i+1))
         # decrypt content
         page_dec = util.decrypt(page_content, key, iv)
-        dec += page_dec + reserve       # TODO: use random
+        dec += page_dec + util.random_bytes(reserve_sz)
 
     return dec
-
-
-def key_derive(salt, password, salt_mask, key_sz, hmac_key_sz):
-    """Derive an encryption key for page decryption, an key for hmac generation"""
-    key_iter = 64000
-    key = hashlib.pbkdf2_hmac('sha1', password, salt, key_iter, key_sz)
-
-    hmac_key_iter = 2
-    hmac_salt = bytearray([x ^ salt_mask for x in salt])
-    hmac_key = hashlib.pbkdf2_hmac('sha1', key, hmac_salt, hmac_key_iter, hmac_key_sz)
-
-    return key, hmac_key
