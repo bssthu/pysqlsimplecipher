@@ -56,23 +56,25 @@ def encrypt_default(raw, password, page_sz, reserve_sz):
     # configs
     salt_mask = config.salt_mask
     key_sz = config.key_sz
+    key_iter = config.key_iter
     hmac_key_sz = config.hmac_key_sz
+    hmac_key_iter = config.hmac_key_iter
     iv_sz = config.iv_sz
     hmac_sz = config.hmac_sz
 
     if reserve_sz < iv_sz + hmac_sz:
         raise RuntimeError('reserved space at the end of each page is %d, needs %d.' % (reserve_sz, iv_sz + hmac_sz))
 
-    return encrypt(raw, password, salt_mask, key_sz, hmac_key_sz, page_sz, iv_sz, reserve_sz, hmac_sz)
+    return encrypt(raw, password, salt_mask, key_sz, key_iter, hmac_key_sz, hmac_key_iter, page_sz, iv_sz, reserve_sz, hmac_sz)
 
 
-def encrypt(raw, password, salt_mask, key_sz, hmac_key_sz, page_sz, iv_sz, reserve_sz, hmac_sz):
+def encrypt(raw, password, salt_mask, key_sz, key_iter, hmac_key_sz, hmac_key_iter, page_sz, iv_sz, reserve_sz, hmac_sz):
     salt_sz = 16
     salt = util.random_bytes(salt_sz)
     enc = salt
 
     # derive key
-    key, hmac_key = util.key_derive(salt, password, salt_mask, key_sz, hmac_key_sz)
+    key, hmac_key = util.key_derive(salt, password, salt_mask, key_sz, key_iter, hmac_key_sz, hmac_key_iter)
 
     # encrypt pages
     for i in range(0, int(len(raw) / 1024)):

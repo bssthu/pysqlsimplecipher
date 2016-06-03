@@ -36,22 +36,24 @@ def decrypt_default(raw, password):
     # configs
     salt_mask = config.salt_mask
     key_sz = config.key_sz
+    key_iter = config.key_iter
     hmac_key_sz = config.hmac_key_sz
+    hmac_key_iter = config.hmac_key_iter
     page_sz = config.page_sz
     iv_sz = config.iv_sz
     reserve_sz = config.reserve_sz
     hmac_sz = config.hmac_sz
 
-    return decrypt(raw, password, salt_mask, key_sz, hmac_key_sz, page_sz, iv_sz, reserve_sz, hmac_sz)
+    return decrypt(raw, password, salt_mask, key_sz, key_iter, hmac_key_sz, hmac_key_iter, page_sz, iv_sz, reserve_sz, hmac_sz)
 
 
-def decrypt(raw, password, salt_mask, key_sz, hmac_key_sz, page_sz, iv_sz, reserve_sz, hmac_sz):
+def decrypt(raw, password, salt_mask, key_sz, key_iter, hmac_key_sz, hmac_key_iter, page_sz, iv_sz, reserve_sz, hmac_sz):
     dec = b'SQLite format 3\0'
 
     # derive key
     salt_sz = 16
     salt = raw[:salt_sz]
-    key, hmac_key = util.key_derive(salt, password, salt_mask, key_sz, hmac_key_sz)
+    key, hmac_key = util.key_derive(salt, password, salt_mask, key_sz, key_iter, hmac_key_sz, hmac_key_iter)
 
     # decrypt file header, try with default page size
     page_sz, reserve_sz = decrypt_page_header(raw, key, salt_sz, page_sz, iv_sz, reserve_sz)
@@ -95,7 +97,7 @@ def decrypt_page_header(raw, key, salt_sz, page_sz, iv_sz, reserve_sz):
         return page_sz, new_reserve_sz
 
     page_sz = 512
-    while page_sz <= 1024:
+    while page_sz <= 65536:
         new_reserve_sz = try_get_reserve_size_for_specified_page_size(raw, key, salt_sz, page_sz, iv_sz, reserve_sz)
         if new_reserve_sz > 0:
             return page_sz, new_reserve_sz
@@ -112,14 +114,14 @@ def try_get_reserve_size_for_specified_page_size(raw, key, salt_sz, page_sz, iv_
     If always fail, return -1.
     """
 
-    first_page = util.get_page(raw, page_sz, 1)
-    first_page_content = first_page[salt_sz:]
+    first_page_content = util.get_page(raw, page_sz, 1)[salt_sz:]
 
     if reserve_sz >= iv_sz:
         first_page_dec = decrypt_by_reserve_size(first_page_content, key, iv_sz, reserve_sz)
         # default reserve_sz is ok
         if util.is_valid_decrypted_header(first_page_dec) \
-                and page_sz == util.get_page_size_from_database_header(raw[:salt_sz] + first_page_dec):
+                and page_sz == util.get_page_size_from_database_header(raw[:salt_sz] + first_page_dec) \
+                and reserve_sz == util.get_reserved_size_from_database_header(raw[:salt_sz] + first_page_dec):
             return reserve_sz
 
     # try every possible reserve size.
@@ -127,7 +129,8 @@ def try_get_reserve_size_for_specified_page_size(raw, key, salt_sz, page_sz, iv_
     for reserve_sz in range(iv_sz, page_sz - 480):
         first_page_dec = decrypt_by_reserve_size(first_page_content, key, iv_sz, reserve_sz)
         if util.is_valid_decrypted_header(first_page_dec) \
-                and page_sz == util.get_page_size_from_database_header(raw[:salt_sz] + first_page_dec):
+                and page_sz == util.get_page_size_from_database_header(raw[:salt_sz] + first_page_dec) \
+                and reserve_sz == util.get_reserved_size_from_database_header(raw[:salt_sz] + first_page_dec):
             return reserve_sz
 
     return -1   # fail

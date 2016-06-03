@@ -58,12 +58,10 @@ def random_bytes(n):
     return os.urandom(n)
 
 
-def key_derive(salt, password, salt_mask, key_sz, hmac_key_sz):
+def key_derive(salt, password, salt_mask, key_sz, key_iter, hmac_key_sz, hmac_key_iter):
     """Derive an encryption key for page encryption/decryption, an key for hmac generation"""
-    key_iter = 64000
     key = hashlib.pbkdf2_hmac('sha1', password, salt, key_iter, key_sz)
 
-    hmac_key_iter = 2
     hmac_salt = bytearray([x ^ salt_mask for x in salt])
     hmac_key = hashlib.pbkdf2_hmac('sha1', key, hmac_salt, hmac_key_iter, hmac_key_sz)
 
