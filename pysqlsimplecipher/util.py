@@ -26,11 +26,19 @@ def decrypt(raw, key, iv):
 
 
 def is_valid_database_header(header):
-    return header[:16] == b'SQLite format 3\0' and header[21] == 64 and header[22] == 32 and header[23] == 32
+    return header[:16] == b'SQLite format 3\0' and is_valid_decrypted_header(header[16:])
+
+
+def is_valid_decrypted_header(header):
+    # skip first 16 bytes
+    return header[21-16] == 64 and header[22-16] == 32 and header[23-16] == 32
 
 
 def get_page_size_from_database_header(header):
-    return int.from_bytes(header[16:18], 'big')
+    page_sz = int.from_bytes(header[16:18], 'big')
+    if page_sz == 1:        # since SQLite version 3.7.1
+        page_sz = 65536
+    return page_sz
 
 
 def get_reserved_size_from_database_header(header):
