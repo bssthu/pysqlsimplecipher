@@ -13,17 +13,27 @@ import math
 import hashlib
 import hmac
 import struct
-from Crypto.Cipher import AES
+import pyaes
 
 
 def encrypt(raw, key, iv):
-    cipher = AES.new(key, AES.MODE_CBC, iv)
-    return cipher.encrypt(raw)
+    if (len(raw) % 16) != 0:
+        raise RuntimeError('length of page content must be 16 or multiples of 16.')
+    buf = b''
+    aes = pyaes.AESModeOfOperationCBC(key, iv=iv)
+    for i in range(0, int(len(raw) / 16)):
+        buf += aes.encrypt(raw[i*16: (i+1)*16])
+    return buf
 
 
 def decrypt(raw, key, iv):
-    cipher = AES.new(key, AES.MODE_CBC, iv)
-    return cipher.decrypt(raw)
+    if (len(raw) % 16) != 0:
+        raise RuntimeError('length of page content must be 16 or multiples of 16.')
+    buf = b''
+    aes = pyaes.AESModeOfOperationCBC(key, iv=iv)
+    for i in range(0, int(len(raw) / 16)):
+        buf += aes.decrypt(raw[i*16: (i+1)*16])
+    return buf
 
 
 def is_valid_database_header(header):

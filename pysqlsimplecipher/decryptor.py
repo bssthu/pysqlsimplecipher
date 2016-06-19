@@ -93,6 +93,7 @@ def decrypt_page_header(raw, key, salt_sz, page_sz, iv_sz, reserve_sz):
         page_sz = 512
 
     new_reserve_sz = try_get_reserve_size_for_specified_page_size(raw, key, salt_sz, page_sz, iv_sz, reserve_sz)
+
     if new_reserve_sz > 0:  # default page_sz is ok
         return page_sz, new_reserve_sz
 

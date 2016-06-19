@@ -17,6 +17,6 @@ setup(name='pysqlsimplecipher',
       license='GNU Lesser General Public License Version 3',
       author='bssthu',
       description='A tool for sqlite database encryption or decryption like sqlcipher without install sqlcipher',
-      install_requires=['pycrypto'],
+      install_requires=['pyaes'],
       packages=['pysqlsimplecipher']
       )
