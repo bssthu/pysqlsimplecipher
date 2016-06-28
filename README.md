@@ -20,5 +20,19 @@ python encrypt.py plain.db password output.db
 ```
 Needs reserved space at the end of each page of the database file.
 
+Otherwise, use sqlcipher to encrypt.
+
+#### Encrypt with sqlcipher
+- Open plain db
+```bash
+./sqlcipher plain.db
+```
+- Encrypt to enc.db
+```sql
+ATTACH DATABASE 'enc.db' as encrypted key 'testkey';
+SELECT sqlcipher_export('encrypted');
+DETACH DATABASE encrypted;
+```
+
 ## License
 GNU Lesser General Public License Version 3
